@@ -1,0 +1,50 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String         @id @default(uuid()) @db.Uuid
+  name         String
+  email        String         @unique
+  password     String
+  role         Role           @default(user)
+  createdAt    DateTime       @default(now())
+  account      Account?
+  transacTions TransacTions[]
+}
+
+model Account {
+  id            String         @id @default(uuid()) @db.Uuid
+  userId        String         @unique @db.Uuid
+  AcctNum       Int            @unique
+  Balance       Int
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime       @default(now())
+  debitHistory  TransacTions[] @relation("Sender")
+  creditHistory TransacTions[] @relation("Receiver")
+}
+
+model TransacTions {
+  id           String  @id @default(uuid()) @db.Uuid
+  fromAccId    String  @unique @db.Uuid
+  toAccId      String  @unique @db.Uuid
+  userId       String  @unique @db.Uuid
+  amount       Int
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  senderAcct   Account @relation("Sender", fields: [fromAccId], references: [id], onDelete: Cascade)
+  receiverAcct Account @relation("Receiver", fields: [toAccId], references: [id], onDelete: Cascade)
+}
+
+enum Role {
+  user
+  admin
+}
