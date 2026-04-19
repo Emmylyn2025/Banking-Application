@@ -2,7 +2,7 @@ import { ParsedQs } from "qs";
 
 /**
  * Generic QueryBuilder for Prisma
- * T represents the Prisma Args type for the specific model (e.g., Prisma.UserFindManyArgs)
+ * T represents the Prisma Args type for the specific model
  */
 export class QueryBuilder<T = any> {
   public query: any;

@@ -1,6 +1,6 @@
 import { asyncHandler, appError } from "../utils/error";
 import { Request, Response, NextFunction } from "express";
-import { userBody, loginBody } from "../types/types";
+import { userBody, loginBody, userUpdateParams, userUpdateBody, userDeleteParams } from "../types/types";
 import { prisma } from "../lib/prisma";
 import crypto from "crypto";
 import { hashPassword, removePassword, comparePassword } from "../utils/password";
@@ -9,6 +9,7 @@ import { generateTokens, saveAccessCookie, saveRefreshCookie, verifyRefresh, cle
 import redis from "../Redis/redis";
 import respond from "../utils/apiResponse";
 import QueryBuilder from "../utils/queryBuilder";
+import { handlePrismaError } from "../utils/handlePrismaError";
 
 export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -185,3 +186,86 @@ export const allUsers = asyncHandler(async (req: Request, res: Response, next: N
 
   res.status(200).json(response);
 });
+
+export const updateUser = asyncHandler(async (req: Request<userUpdateParams, {}, userUpdateBody>, res: Response, next: NextFunction) => {
+  const userId = req.params.userId;
+  const { role, Balance, accountId } = req.body;
+  
+  try {
+
+    //Find user and update
+    const user = await prisma.user.update({
+      where: {
+        id: userId
+      },
+      data: {
+        role,
+        account: {
+          update: {
+            where: {
+              id: accountId
+            },
+            data: {
+              Balance
+            }
+          }
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        account: {
+          select: {
+            id: true,
+            Balance: true
+          }
+        }
+      }
+    });
+
+    const response = respond(true, "User updated successfully", user);
+
+    res.status(200).json(response);
+    
+  } catch (error: any) {
+    const { status, message } = handlePrismaError(res, error)
+    res.status(status).json(message);
+  }
+});
+
+export const deleteUser = asyncHandler(async (req: Request<userDeleteParams, {}, userUpdateBody>, res: Response, next: NextFunction) => {
+  const userId = req.params.userId;
+
+  try {
+
+    const user = await prisma.user.delete({
+      where: {
+        id: userId
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        role: true,
+        createdAt: true,
+        account: {
+          select: {
+            id: true,
+            Balance: true,
+            createdAt: true
+          }
+        }
+      }
+    });
+
+    const response = respond(true, "User deleted Successfully", user);
+    res.status(200).json(response);
+    
+  } catch (error: any) {
+    const { status, message } = handlePrismaError(res, error)
+    res.status(status).json(message);
+  }
+})

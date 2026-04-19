@@ -37,5 +37,7 @@ export const auth = async (req: Request, res: Response, next: NextFunction) => {
 
 export const adminAuth = async (req: Request, res: Response, next: NextFunction) => {
   const response = respond(false, "Not authenticated", null);
-  if(req.user?.role !== "admin") return res.status(401).json(response);
+  if (req.user?.role !== "admin") return res.status(401).json(response);
+  
+  next()
 }
