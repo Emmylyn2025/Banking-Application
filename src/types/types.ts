@@ -50,3 +50,9 @@ declare global {
     }
   }
 }
+
+export interface userTranferTypes {
+  acctNumber: number,
+  password: string,
+  amount: number
+}
