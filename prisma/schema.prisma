@@ -35,9 +35,9 @@ model Account {
 
 model TransacTions {
   id           String   @id @default(uuid()) @db.Uuid
-  fromAccId    String   @unique @db.Uuid
-  toAccId      String   @unique @db.Uuid
-  userId       String   @unique @db.Uuid
+  fromAccId    String   @db.Uuid
+  toAccId      String   @db.Uuid
+  userId       String   @db.Uuid
   amount       Int
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   senderAcct   Account  @relation("Sender", fields: [fromAccId], references: [id], onDelete: Cascade)

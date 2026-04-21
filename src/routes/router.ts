@@ -1,6 +1,6 @@
 import express from "express";
 import { registerUser, loginUser, refresh, logout, allUsers, updateUser, deleteUser } from "../controllers/userController";
-import { getAccount, transfer } from "../controllers/accountController";
+import { getAccount, transfer, allTransactions } from "../controllers/accountController";
 import { auth, adminAuth } from "../middleware/authMiddleware";
 
 
@@ -18,5 +18,6 @@ router.delete('/users/:userId', auth, adminAuth, deleteUser);
 //Account routes
 router.get('/account', auth, getAccount);
 router.post('/transfer', auth, transfer);
+router.get('/transfer', auth,  allTransactions)
 
 export default router;

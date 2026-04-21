@@ -16,8 +16,7 @@ function generateTokens(user: userToken): tokens {
       `JWT Secrets missing! Access: ${!!accessSecret}, Refresh: ${!!refreshSecret}`
     );
   }
-  //console.log(accessSecret);
-  
+
   const accessToken = jwt.sign({
     id: user.id,
     role: user.role

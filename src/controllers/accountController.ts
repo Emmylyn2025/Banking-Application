@@ -137,16 +137,45 @@ export const transfer = asyncHandler(async (req: Request<{}, {}, userTranferType
 });
 
 export const allTransactions = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
-  // const userId = req.user?.id;
+  const userId = req.user?.id;
 
-  // const allowedFields = ["name", "id", "email", "createdAt", "role"];
+  const allowedFields = ["id", "fromAccId", "toAccId", "userId", "amount", "createdAt", "receiverAcct"];
 
-  //  const builder = new QueryBuilder(req.query)
-  //     .filter(allowedFields)
-  //     .limitFields(allowedFields)
-  //     .sort(allowedFields)
-  //     .paginate()
+  const builder = new QueryBuilder(req.query)
+    .filter(allowedFields)
+    .limitFields(allowedFields)
+    .sort(allowedFields)
+    .paginate()
 
-  // //Get all Transactions
-  // const transactions = await prisma.transacTions.findMany();
-})
+  const transactions = await prisma.transacTions.findMany({
+    where: {
+      ...(builder.build().where || {}),
+      userId
+    },
+    select: {
+      ...(builder.build().select || {}),
+      receiverAcct: {
+        select: {
+          id: true,
+          userId: true,
+          AcctNum: true,
+          createdAt: true,
+          user: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    }
+  });
+
+  if (!transactions) {
+    const response = respond(true, "You have no transactions", null);
+    res.status(404).json(response);
+  }
+
+  const response = respond(true, "Data retrieved successfully", transactions);
+  res.status(200).json(response);
+
+});
