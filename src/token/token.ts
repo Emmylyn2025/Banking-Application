@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import { userToken } from "../types/types";
 import { tokens } from "../types/types";
 import { Response } from "express";
+import crypto from "crypto";
 
 
 function generateTokens(user: userToken): tokens {
@@ -68,12 +69,16 @@ function clearRefresh(res: Response) {
   })
 }
 
-export function verifyAccess(token: string) : userToken {
+function verifyAccess(token: string) : userToken {
   return jwt.verify(token, process.env.accessTokenSecret!) as userToken;
 }
 
-export function verifyRefresh(token: string) : userToken {
+function verifyRefresh(token: string) : userToken {
   return jwt.verify(token, process.env.refreshTokenSecret!) as userToken;
 }
 
-export { saveAccessCookie, saveRefreshCookie, generateTokens, clearAccess, clearRefresh };
+function hashPasswordResetToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+export { saveAccessCookie, saveRefreshCookie, generateTokens, clearAccess, clearRefresh, verifyAccess, verifyRefresh, hashPasswordResetToken };

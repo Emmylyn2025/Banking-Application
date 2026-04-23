@@ -5,10 +5,21 @@ import { Request, Response, NextFunction } from "express";
 import { userTranferTypes } from "../types/types";
 import { comparePassword } from "../utils/password";
 import QueryBuilder from "../utils/queryBuilder";
+import redis from "../Redis/redis";
+import { saveInRedis, getFromRedis } from "../Redis/utilityRedis";
 
 
 export const getAccount = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const userId = req.user?.id;
+
+  //Get account data from redis cache
+  const cachedAccount = await getFromRedis(`account:${userId}`);
+
+  if (cachedAccount) {
+    const account = cachedAccount;
+    const response = respond(true, "User account retrieved from cache", account);
+    return res.status(200).json(response);
+  }
 
   //Find user account
   const account = await prisma.account.findUnique({
@@ -30,6 +41,9 @@ export const getAccount = asyncHandler(async (req: Request, res: Response, next:
 
   //If the account does not exists
   if (!account) return next(new appError("You don't have a bank account with us", 404));
+
+  //Set account data in redis cache with exipiration time of 30minutes
+  await saveInRedis(`account:${userId}`, account, 1800);
 
   //If the user account exists
   const response = respond(true, "User account retrieved", account);
@@ -139,6 +153,15 @@ export const transfer = asyncHandler(async (req: Request<{}, {}, userTranferType
 export const allTransactions = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
   const userId = req.user?.id;
 
+  //Get transactions data from redis cache
+  const cachedTransactions = await getFromRedis(`transactions:${userId}${JSON.stringify(req.query)}`);
+
+  if (cachedTransactions) {
+    const transactions = cachedTransactions;
+    const response = respond(true, "Transactions retrieved from cache", transactions);
+    return res.status(200).json(response);
+  }
+
   const allowedFields = ["id", "fromAccId", "toAccId", "userId", "amount", "createdAt", "receiverAcct"];
 
   const builder = new QueryBuilder(req.query)
@@ -175,7 +198,56 @@ export const allTransactions = asyncHandler(async (req: Request, res: Response, 
     res.status(404).json(response);
   }
 
+  //Set transactions data in redis cache with exipiration time of 30minutes
+  await saveInRedis(`transactions:${userId}${JSON.stringify(req.query)}`, transactions, 1800);
+
   const response = respond(true, "Data retrieved successfully", transactions);
   res.status(200).json(response);
 
+});
+
+export const getTransactionById = asyncHandler(async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
+  const transactionId = req.params.id;
+
+  //Get transaction data from redis cache
+  const cachedTransaction = await getFromRedis(`transaction:${transactionId}`);
+
+  if (cachedTransaction) {
+    const transaction = cachedTransaction;
+    const response = respond(true, "Transaction retrieved from cache", transaction);
+    return res.status(200).json(response);
+  }
+
+  //Get the transaction
+  const transaction = await prisma.transacTions.findUnique({
+    where: {
+      id: transactionId
+    },
+    include: {
+      receiverAcct: {
+        select: {
+          id: true,
+          userId: true,
+          AcctNum: true,
+          createdAt: true,
+          user: {
+            select: {
+              name: true
+            }
+          }
+        }
+      }
+    }
+  })
+
+  if (!transaction) {
+    const response = respond(false, "Transaction not found", null);
+    res.status(404).json(response);
+  }
+
+  //Set transactions data in redis cache with exipiration time of 30minutes
+  await saveInRedis(`transaction:${transactionId}`, transaction, 1800);
+
+  const response = respond(true, "Transaction retrieved successfully", transaction);
+  res.status(200).json(response);
 });

@@ -5,11 +5,12 @@ import { prisma } from "../lib/prisma";
 import crypto from "crypto";
 import { hashPassword, removePassword, comparePassword } from "../utils/password";
 import removeSome from "../utils/removeUserFields";
-import { generateTokens, saveAccessCookie, saveRefreshCookie, verifyRefresh, clearAccess, clearRefresh } from "../token/token";
+import { generateTokens, saveAccessCookie, saveRefreshCookie, verifyRefresh, clearAccess, clearRefresh, hashPasswordResetToken } from "../token/token";
 import redis from "../Redis/redis";
 import respond from "../utils/apiResponse";
 import QueryBuilder from "../utils/queryBuilder";
 import { handlePrismaError } from "../utils/handlePrismaError";
+import { saveInRedis, getFromRedis } from "../Redis/utilityRedis";
 
 export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -91,10 +92,8 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, loginBody>, re
   saveRefreshCookie(res, refreshToken);
 
   //Save accessToken in redis
-  await redis.set(`access(banking)${afterRemoval.id}`, accessToken, 'EX', 420);
-
-  //Save refresh token in redis for back up
-  await redis.set(`refresh(banking)${afterRemoval.id}`, refreshToken, 'EX', 604800);
+  await saveInRedis(`access(banking)${afterRemoval.id}`, accessToken, 420);
+  await saveInRedis(`refresh(banking)${afterRemoval.id}`, refreshToken, 604800);
 
   const response = respond(true, "Login Successful", accessToken)
 
@@ -117,8 +116,7 @@ export const refresh = asyncHandler(async (req: Request, res: Response, next: Ne
     saveRefreshCookie(res, refreshToken);
 
     //Save inside of redis
-    await redis.set(`access(banking)${user.id}`, accessToken, 'EX', 420);
-    await redis.set(`refresh(banking)${user.id}`, refreshToken, 'EX', 604800);
+    await saveInRedis(`refresh(banking)${user.id}`, refreshToken, 604800);
 
     const response = respond(true, "Refresh successful", accessToken);
 
@@ -142,8 +140,7 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
     clearRefresh(res);
 
     //Delete tokens from redis
-    await redis.del(`access(banking)${user.id}`);
-    await redis.del(`refresh(banking)${user.id}`);
+    await saveInRedis(`refresh(banking)${user.id}`, "", 0);
 
     //Response 
     const response = respond(true, "Logout Successful", null);
@@ -155,9 +152,120 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
   }
 });
 
+export const myAccount = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
+  const userId = req.user?.id;
+
+  //Get account data from redis cache
+  const cachedAccount = await getFromRedis(`myaccount:${userId}`);
+
+  if (cachedAccount) { 
+    const account = cachedAccount;
+    const response = respond(true, "User account retrieved from cache", account);
+    return res.status(200).json(response);
+  }
+
+  //Get my account details from database
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      account: {
+        select: {
+          AcctNum: true,
+          Balance: true,
+          createdAt: true
+        }
+      }
+    }
+  })
+
+  if (!user) {
+    const response = respond(false, "User not found", null);
+    return res.status(404).json(response);
+  }
+
+  //set account data in redis cache with expiration time of 30minutes
+  await saveInRedis(`myaccount:${userId}`, user, 1800);
+
+  const response = respond(true, "Account details retrieved", user);
+  res.status(200).json(response);
+});
+
+export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: string }>, res: Response, next: NextFunction) => {
+  const { email } = req.body;
+  //Check if the email exists
+  const user = await prisma.user.findUnique({
+    where: {
+      email
+    }
+  });
+
+  if (!user) return next(new appError("User is not registered", 404));
+
+  //If user exists, generate reset token and send email to user with the token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  //Save the hashed reset token in redis with expiration time of 10minutes
+  await saveInRedis(`resetToken:${resetToken}`, user.id, 600);
+
+  //Add the hashed reset token to the reset url
+  const resetUrl = `${process.env.base_url}/banking/reset-password/${resetToken}`;
+  console.log(resetUrl);
+
+  const response = respond(true, "Reset url is in your console", null);
+  res.status(200).json(response);
+});
+
+export const resetPassword = asyncHandler(async (req: Request<{ token: string }, {}, { password: string }>, res: Response, next: NextFunction) => { 
+  const { token } = req.params;
+  const { password } = req.body;
+
+  //Get the hashed toke from redis
+  const savedHasedToken = await getFromRedis(`resetToken:${token}`);
+
+  //If the token is invalid or expired
+  if (!savedHasedToken) {
+    const response = respond(false, "Invalid or expired token", null);
+    return res.status(400).json(response);
+  }
+
+  try {
+    //If the token is valid, find the user and update the password
+    await prisma.user.update({
+      where: {
+        id: savedHasedToken
+      },
+      data: {
+        password: await hashPassword(password)
+      }
+    });
+
+    const response = respond(true, "Password reset successful", null);
+    res.status(200).json(response);
+
+  } catch (error: any) {
+    const { status, message } = handlePrismaError(res, error);
+    const response = respond(false, message, null);
+    res.status(status).json(response);
+  }
+})
+
 export const allUsers = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
   const allowedFields = ["name", "id", "email", "createdAt", "role"];
+
+  const cachedUsers = await getFromRedis(`allusers:${JSON.stringify(req.query)}`);
+
+  if(cachedUsers) {
+    const response = respond(true, "Users retrieved from cache", cachedUsers);
+    return res.status(200).json(response);
+  }
 
   const builder = new QueryBuilder(req.query)
     .filter(allowedFields)
@@ -179,6 +287,14 @@ export const allUsers = asyncHandler(async (req: Request, res: Response, next: N
       }
     }
   });
+
+  if (!allUsers || allUsers.length === 0) {
+    const response = respond(true, "No users found", null);
+    return res.status(200).json(response);
+  }
+
+  //If there are users, set the data in redis cache with expiration time of 30minutes
+  await saveInRedis(`allusers:${JSON.stringify(req.query)}`, allUsers, 1800);
 
   const formatMessage = allUsers.length > 1 ? "Users retrieved Successfully" : "User retrieved"
 
@@ -232,7 +348,8 @@ export const updateUser = asyncHandler(async (req: Request<userUpdateParams, {},
     
   } catch (error: any) {
     const { status, message } = handlePrismaError(res, error)
-    res.status(status).json(message);
+    const response = respond(false, message, null);
+    res.status(status).json(response);
   }
 });
 
@@ -266,6 +383,7 @@ export const deleteUser = asyncHandler(async (req: Request<userDeleteParams, {},
     
   } catch (error: any) {
     const { status, message } = handlePrismaError(res, error)
-    res.status(status).json(message);
+    const response = respond(false, message, null);
+    res.status(status).json(response);
   }
-})
+});
