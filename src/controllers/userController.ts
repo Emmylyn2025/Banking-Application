@@ -6,7 +6,6 @@ import crypto from "crypto";
 import { hashPassword, removePassword, comparePassword } from "../utils/password";
 import removeSome from "../utils/removeUserFields";
 import { generateTokens, saveAccessCookie, saveRefreshCookie, verifyRefresh, clearAccess, clearRefresh, hashPasswordResetToken } from "../token/token";
-import redis from "../Redis/redis";
 import respond from "../utils/apiResponse";
 import QueryBuilder from "../utils/queryBuilder";
 import { handlePrismaError } from "../utils/handlePrismaError";
@@ -95,7 +94,7 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, loginBody>, re
   await saveInRedis(`access(banking)${afterRemoval.id}`, accessToken, 420);
   await saveInRedis(`refresh(banking)${afterRemoval.id}`, refreshToken, 604800);
 
-  const response = respond(true, "Login Successful", accessToken)
+  const response = respond(true, "Login Successful", accessToken);
 
   res.status(200).json(response);
 });

@@ -5,7 +5,6 @@ import { Request, Response, NextFunction } from "express";
 import { userTranferTypes } from "../types/types";
 import { comparePassword } from "../utils/password";
 import QueryBuilder from "../utils/queryBuilder";
-import redis from "../Redis/redis";
 import { saveInRedis, getFromRedis } from "../Redis/utilityRedis";
 
 

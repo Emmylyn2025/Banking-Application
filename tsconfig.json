@@ -12,7 +12,7 @@
     "resolveJsonModule": true,
 
     "types": ["node", "jest"],
-    "noImplicitAny": true
+    "noImplicitAny": true,
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
