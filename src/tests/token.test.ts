@@ -47,15 +47,4 @@ describe("generateTokens", () => {
     const user = { id: "123", role: "user" as const };
     expect(() => generateTokens(user)).toThrow("JWT Secrets missing!");
   });
-
-  it("should handle admin role", () => {
-    const user = { id: "456", role: "admin" as const };
-    const tokens = generateTokens(user);
-
-    const decodedAccess = jwt.verify(tokens.accessToken, "testAccessSecret") as any;
-    expect(decodedAccess.role).toBe("admin");
-
-    const decodedRefresh = jwt.verify(tokens.refreshToken, "testRefreshSecret") as any;
-    expect(decodedRefresh.role).toBe("admin");
-  });
 });

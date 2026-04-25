@@ -81,4 +81,8 @@ function hashPasswordResetToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-export { saveAccessCookie, saveRefreshCookie, generateTokens, clearAccess, clearRefresh, verifyAccess, verifyRefresh, hashPasswordResetToken };
+async function generatePasswordResetToken(): Promise<string> { 
+  return await crypto.randomBytes(32).toString("hex");
+}
+
+export { saveAccessCookie, saveRefreshCookie, generateTokens, clearAccess, clearRefresh, verifyAccess, verifyRefresh, hashPasswordResetToken, generatePasswordResetToken };

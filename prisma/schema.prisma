@@ -12,14 +12,15 @@ datasource db {
 }
 
 model User {
-  id           String         @id @default(uuid()) @db.Uuid
-  name         String
-  email        String         @unique
-  password     String
-  role         Role           @default(user)
-  createdAt    DateTime       @default(now())
-  account      Account?
-  transacTions TransacTions[]
+  id            String         @id @default(uuid()) @db.Uuid
+  name          String
+  email         String         @unique
+  password      String
+  role          Role           @default(user)
+  createdAt     DateTime       @default(now())
+  emailVerified Boolean        @default(false)
+  account       Account?
+  transacTions  TransacTions[]
 }
 
 model Account {

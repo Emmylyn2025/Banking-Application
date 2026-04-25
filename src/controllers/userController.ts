@@ -10,6 +10,8 @@ import respond from "../utils/apiResponse";
 import QueryBuilder from "../utils/queryBuilder";
 import { handlePrismaError } from "../utils/handlePrismaError";
 import { saveInRedis, getFromRedis } from "../Redis/utilityRedis";
+import { generatePasswordResetToken } from "../token/token";
+import { sendEmailForPasswordReset, sendEmailForVerification } from "../emails/sendEmail";
 
 export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -36,7 +38,8 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
       data: {
         name,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        emailVerified: false
       }
     });
 
@@ -57,9 +60,58 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
   const userAccount = result.acct;
   const together = { ...final, ...userAccount };
 
-  const response = respond(true, "User created Successfully", together);
+  const verifyEmailToken = await generatePasswordResetToken();
+
+  //Save the verify email token in redis with expiration time of 24hours
+  await saveInRedis(`verifyEmail:${verifyEmailToken}`, result.newUser.id, 60 * 60 * 24);
+
+  //Send email to user with the token and the url to verify email
+  const verifyEmailUrl = `${process.env.base_url}/banking/verify-email/${verifyEmailToken}`; 
+
+  //Send the link to the user email for email verification
+  await sendEmailForVerification(result.newUser.email, verifyEmailUrl);
+
+  const response = respond(true, "User created Successfully, Make sure to verify your email, to make your account active and secure", together);
 
   res.status(201).json(response);
+});
+
+export const verifyEmail = asyncHandler(async (req: Request<{ token: string }, {}, {}>, res: Response, next: NextFunction) => {
+  const { token } = req.params;
+
+  //Get the user id from redis using the token
+  const userId = await getFromRedis(`verifyEmail:${token}`);
+
+  if (!userId) {
+    return next(new appError("Invalid or expired verification token", 400));
+  }
+
+  //Find the user and update emailVerified to true
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId
+    }
+  });
+
+  if (!user) {
+    return next(new appError("User not found", 404));
+  }
+
+  //If user is found, update emailVerified to true
+  await prisma.user.update({
+    where: {
+      id: userId
+    },
+    data: {
+      emailVerified: true
+    }
+  });
+
+  //Delete the token from redis
+  await saveInRedis(`verifyEmail:${token}`, "", 0);
+
+  const response = respond(true, "Email verified successfully", null);
+  res.status(200).json(response);
 });
 
 export const loginUser = asyncHandler(async (req: Request<{}, {}, loginBody>, res: Response, next: NextFunction) => {
@@ -73,6 +125,9 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, loginBody>, re
   });
 
   if (!user) return next(new appError("User not registered", 401));
+
+  //Check if the user has verified their email
+  if(user.emailVerified === false) return next(new appError("Please verify your email to login", 401));
 
   //Compare password
   const pass = await comparePassword(password, user.password);
@@ -208,16 +263,21 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: 
   if (!user) return next(new appError("User is not registered", 404));
 
   //If user exists, generate reset token and send email to user with the token
-  const resetToken = crypto.randomBytes(32).toString("hex");
+  const resetToken = await generatePasswordResetToken();
 
   //Save the hashed reset token in redis with expiration time of 10minutes
   await saveInRedis(`resetToken:${resetToken}`, user.id, 600);
 
   //Add the hashed reset token to the reset url
   const resetUrl = `${process.env.base_url}/banking/reset-password/${resetToken}`;
-  console.log(resetUrl);
+  //console.log(resetUrl);
 
-  const response = respond(true, "Reset url is in your console", null);
+  //Send the link to the user email for password reset
+  const ip = req.ip!;
+  const userAgent = req.headers["user-agent"] || "unknown";
+  await sendEmailForPasswordReset(user.email, resetUrl, ip, userAgent)
+
+  const response = respond(true, "Reset url has been sent to your email", null);
   res.status(200).json(response);
 });
 
@@ -248,6 +308,9 @@ export const resetPassword = asyncHandler(async (req: Request<{ token: string },
     const response = respond(true, "Password reset successful", null);
     res.status(200).json(response);
 
+    //Delete the token from redis
+    await saveInRedis(`resetToken:${token}`, "", 0);
+    
   } catch (error: any) {
     const { status, message } = handlePrismaError(res, error);
     const response = respond(false, message, null);

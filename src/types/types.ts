@@ -1,6 +1,7 @@
 
 export interface userRemoval extends userBody, userToken {
-  createdAt: Date
+  createdAt: Date,
+  emailVerified: boolean
 }
 
 export interface loginBody {
