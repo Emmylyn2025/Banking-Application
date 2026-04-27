@@ -1,0 +1,137 @@
+# Banking api
+
+A restful api to manage users, account, and also authentication
+Built with node js(express), postgres(prisma orm) and typescript
+
+
+## Features
+
+- User authentication (JWT)
+- Account management
+- Secure password hashing
+- Secure money transfer with prisma transactions
+
+## Tech Stack
+
+- Node.js
+- Express
+- TypeScript
+- Prisma ORM
+- PostgreSQL
+- Jest & Supertest (testing)
+- ioredis for cache
+- resend from email
+- redis and express-rate-limit for rate limiting
+
+
+## Installation
+
+1. Clone the repo
+
+```bash
+git clone https://github.com/yourusername/your-api.git
+cd your-api
+
+2. Install dependencies
+
+```bash
+npm install
+
+3. Database configuration
+
+DATABASE_URL=your_database_url
+JWT_SECRET=your_secret
+
+4. Run the migration
+
+```bash
+npx prisma migrate dev
+npx prisma generate
+
+
+
+---
+
+# 📡 5. API Endpoints
+
+```md
+## API Endpoints
+
+### Auth
+
+POST /banking/register  
+POST /banking/login  
+POST /banking/logout
+POST /banking/refresh
+POST /banking/forgot-password
+POST /banking/reset-password/:token
+
+### Users
+
+GET /banking/users
+GET /banking/users/:id
+GET /banking/users/:userId
+DELETE /banking/:userId
+PATCH /banking/:userId  
+
+### Account
+
+GET /account  
+POST /transfer
+GET /transfer
+GET /transfer/:id
+
+
+
+## Example: Login
+
+### Request
+
+POST /banking/login
+
+```json
+{
+  "email": "test@test.com",
+  "password": "password123"
+}
+
+### Response
+{
+  "success": true 
+  "message": "Login successful",
+  "data": access_token
+}
+
+###The access token will be saved in cookie
+
+## Example: Register
+
+### Request
+
+POST /banking/register
+
+```json
+{
+  "name": "test"
+  "email": "test@test.com",
+  "password": "password123"
+}
+
+### Response
+{
+  "success": true 
+  "message": "Registration successful, email verification ahs been sant to you email",
+  "data": user_data
+}
+
+
+## Environment Variables
+
+- DATABASE_URL
+- JWT_SECRET
+- PORT
+- resend_api_key
+- resend_from
+- accessTokenSecret
+- refreshTokenSecret
+- base_url

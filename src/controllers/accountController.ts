@@ -6,6 +6,7 @@ import { userTranferTypes } from "../types/types";
 import { comparePassword } from "../utils/password";
 import QueryBuilder from "../utils/queryBuilder";
 import { saveInRedis, getFromRedis } from "../Redis/utilityRedis";
+import validateId from "../utils/validateId";
 
 
 export const getAccount = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -207,6 +208,12 @@ export const allTransactions = asyncHandler(async (req: Request, res: Response, 
 
 export const getTransactionById = asyncHandler(async (req: Request<{ id: string }>, res: Response, next: NextFunction) => {
   const transactionId = req.params.id;
+
+  //Validate transactionId
+  const result = validateId(transactionId);
+  if (!result?.success) {
+    return res.status(400).json(result);
+  }
 
   //Get transaction data from redis cache
   const cachedTransaction = await getFromRedis(`transaction:${transactionId}`);

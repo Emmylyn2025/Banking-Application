@@ -12,16 +12,14 @@ import { handlePrismaError } from "../utils/handlePrismaError";
 import { saveInRedis, getFromRedis } from "../Redis/utilityRedis";
 import { generatePasswordResetToken } from "../token/token";
 import { sendEmailForPasswordReset, sendEmailForVerification } from "../emails/sendEmail";
+import { getUserByEmail, getUserById } from "../services/user.service";
+import validateId from "../utils/validateId";
 
 export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
   
-  //Check if the user Exists before
-  const user = await prisma.user.findUnique({
-    where: {
-      email
-    }
-  });
+  //Check if the user Exists before creating a new user
+  const user = await getUserByEmail(email);
 
   if (user) return next(new appError("This is a registered user", 400));
 
@@ -86,12 +84,7 @@ export const verifyEmail = asyncHandler(async (req: Request<{ token: string }, {
     return next(new appError("Invalid or expired verification token", 400));
   }
 
-  //Find the user and update emailVerified to true
-  const user = await prisma.user.findUnique({
-    where: {
-      id: userId
-    }
-  });
+  const user = await getUserById(userId);
 
   if (!user) {
     return next(new appError("User not found", 404));
@@ -116,13 +109,8 @@ export const verifyEmail = asyncHandler(async (req: Request<{ token: string }, {
 
 export const loginUser = asyncHandler(async (req: Request<{}, {}, loginBody>, res: Response, next: NextFunction) => {
   const { email, password } = req.body;
-  
-  //Check if the email exists
-  const user = await prisma.user.findUnique({
-    where: {
-      email
-    }
-  });
+
+  const user = await getUserByEmail(email);
 
   if (!user) return next(new appError("User not registered", 401));
 
@@ -254,11 +242,8 @@ export const myAccount = asyncHandler(async (req: Request, res: Response, next: 
 export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: string }>, res: Response, next: NextFunction) => {
   const { email } = req.body;
   //Check if the email exists
-  const user = await prisma.user.findUnique({
-    where: {
-      email
-    }
-  });
+
+  const user = await getUserByEmail(email);
 
   if (!user) return next(new appError("User is not registered", 404));
 
@@ -320,7 +305,7 @@ export const resetPassword = asyncHandler(async (req: Request<{ token: string },
 
 export const allUsers = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
-  const allowedFields = ["name", "id", "email", "createdAt", "role"];
+  const allowedFields = ["name", "id", "email", "createdAt", "role", "account"];
 
   const cachedUsers = await getFromRedis(`allusers:${JSON.stringify(req.query)}`);
 
@@ -365,8 +350,51 @@ export const allUsers = asyncHandler(async (req: Request, res: Response, next: N
   res.status(200).json(response);
 });
 
+export const userById = asyncHandler(async (req: Request<{id: string}>, res: Response, next: NextFunction) => {
+  const userId = req.params.id;
+
+  //Validate userId
+  const result = validateId(userId);
+  if (!result?.success) {
+    return res.status(400).json(result);
+  }
+
+  //Save the user data in redis cache with expiration time of 7minutes
+  const cachedUser = await getFromRedis(`user:${userId}`);
+
+  if (cachedUser) {
+    const user = cachedUser;
+    const response = respond(true, "User retrieved from cache", user);
+    return res.status(200).json(response);
+  }
+
+
+  const user = await getUserById(userId);
+
+  if (!user) {
+    const response = respond(false, "User not found", null);
+    return res.status(404).json(response);
+  }
+
+  //Remove password from user data
+  const final = removePassword(user);
+
+  //Save the user data in redis cache with expiration time of 7 minutes
+  await saveInRedis(`user:${userId}`, final, 420);
+
+  const response = respond(true, "User retrieved successfully", final);
+  res.status(200).json(response);
+});
+
 export const updateUser = asyncHandler(async (req: Request<userUpdateParams, {}, userUpdateBody>, res: Response, next: NextFunction) => {
   const userId = req.params.userId;
+
+  //Validate userId
+  const result = validateId(userId);
+  if (!result?.success) {
+    return res.status(400).json(result);
+  }
+
   const { role, Balance, accountId } = req.body;
   
   try {
@@ -417,6 +445,12 @@ export const updateUser = asyncHandler(async (req: Request<userUpdateParams, {},
 
 export const deleteUser = asyncHandler(async (req: Request<userDeleteParams, {}, userUpdateBody>, res: Response, next: NextFunction) => {
   const userId = req.params.userId;
+
+  //Validate userId
+  const result = validateId(userId);
+  if (!result?.success) {
+    return res.status(400).json(result);
+  }
 
   try {
 

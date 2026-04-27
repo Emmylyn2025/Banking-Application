@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, refresh, logout, allUsers, updateUser, deleteUser, forgotPassword, myAccount, resetPassword } from "../controllers/userController";
+import { registerUser, loginUser, refresh, logout, allUsers, updateUser, deleteUser, forgotPassword, myAccount, resetPassword, userById } from "../controllers/userController";
 import { getAccount, transfer, allTransactions, getTransactionById } from "../controllers/accountController";
 import { auth, adminAuth } from "../middleware/authMiddleware";
 import validateRequest from "../zod/validationMiddleware";
@@ -20,7 +20,7 @@ router.patch('/users/:userId', auth, adminAuth, updateUser);
 router.delete('/users/:userId', auth, adminAuth, deleteUser);
 router.post('/forgot-password', validateRequest(forgotPasswordSchema), forgotPassword);
 router.post('/reset-password/:token', validateRequest(resetPasswordSchema), resetPassword);
-
+router.get('/users/:id', auth, adminAuth, userById);
 
 //Account routes
 router.get('/account', auth, getAccount);
