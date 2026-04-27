@@ -320,7 +320,9 @@ export const allUsers = asyncHandler(async (req: Request, res: Response, next: N
     .sort(allowedFields)
     .paginate()
 
-  const allUsers = await prisma.user.findMany({
+  try {
+
+    const allUsers = await prisma.user.findMany({
     ...builder.build(),
     select: {
       ...(builder.build().select || {}),
@@ -348,6 +350,12 @@ export const allUsers = asyncHandler(async (req: Request, res: Response, next: N
   const response = respond(true, `${formatMessage}`, allUsers);
 
   res.status(200).json(response);
+    
+  } catch (error: Error | any) {
+    const { status, message } = handlePrismaError(res, error)
+    const response = respond(false, message, null);
+    res.status(status).json(response);
+  }
 });
 
 export const userById = asyncHandler(async (req: Request<{id: string}>, res: Response, next: NextFunction) => {

@@ -49,7 +49,14 @@ export class QueryBuilder<T = any> {
         for (const operator in value as object) {
           const cleanOp = operator.replace("$", "");
           // Convert the nested value (e.g., the "100" in price[gte]=100)
-          where[key][cleanOp] = parseValue((value as any)[operator]);
+
+          // Handle PostgreSQL 'ilike' behavior via Prisma 'contains'
+          if (cleanOp === "contains" || cleanOp === "ilike") {
+            where[key]["contains"] = (value as any)[operator];
+            where[key]["mode"] = "insensitive"; // This makes it ILIKE
+          } else { 
+            where[key][cleanOp] = parseValue((value as any)[operator]);
+          }
         }
       } else {
         // Convert direct value (e.g., the "true" in isActive=true)

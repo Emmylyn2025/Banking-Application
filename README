@@ -1,15 +1,16 @@
 # Banking api
 
-A restful api to manage users, account, and also authentication
-Built with node js(express), postgres(prisma orm) and typescript
+A secure, scalable banking API designed to demonstrate best practices in transaction handling, authentication, and API architecture. Built to solve the challenge of concurrent money transfers using ACID-compliant database transactions."
 
 
 ## Features
 
 - User authentication (JWT)
+- Saving of refresh and access token in http only cookie
 - Account management
 - Secure password hashing
-- Secure money transfer with prisma transactions
+- I implemented Prisma transactions for money transfers to ensure atomicity, preventing the 'lost update' problem.
+- Integrated Redis with express-rate-limit to prevent brute-force attacks on the /login and /transfer endpoints.
 
 ## Tech Stack
 
@@ -29,8 +30,8 @@ Built with node js(express), postgres(prisma orm) and typescript
 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourusername/your-api.git
-cd your-api
+git clone https://github.com/Emmylyn2025/Typescript-Express
+cd the_api
 
 2. Install dependencies
 
@@ -58,8 +59,8 @@ npx prisma generate
 ## API Endpoints
 
 ### Auth
-
 POST /banking/register  
+GET  /banking/verify-email
 POST /banking/login  
 POST /banking/logout
 POST /banking/refresh
@@ -67,19 +68,33 @@ POST /banking/forgot-password
 POST /banking/reset-password/:token
 
 ### Users
-
 GET /banking/users
-GET /banking/users/:id
-GET /banking/users/:userId
+GET /banking/users?name=emmanuel  ##filter by name
+GET /banking/users?email=emmanuel@gmail.com ##filter by email
+GET /banking/users?role=admin ##filter by role
+GET /banking/users?id=12344 ## filter by id
+GET /banking/users?sort=-name&limit=5 ##Sort by name(desending) with limit 5
+GET /banking/users?sort=-email&limit=6 ##Sort by email(desending) with limit 6
+GET /banking/users?sort=-createdAt&limit=6 ##Sort by the(desending) time they registered with limit 6
+GET /banking/users?sort=name&limit=5 ##Sort by name(asending) with limit 5
+GET /banking/users?sort=email&limit=6 ##Sort by email(asending) with limit 6
+GET /banking/users?sort=createdAt&limit=6 ##Sort by the time(asending) they registered with limit 6
+GET /banking/users?sort=createdAt&limit=6&page=2 ##Sort by the time(asending) they registered with limit 6 and offset of 2
+GET /banking/users?name[ilike]=Emma ##If you want to filter names that include the letters "Emma"
+GET /banking/users/:id ## Get a single user by id
 DELETE /banking/:userId
 PATCH /banking/:userId  
 
 ### Account
-
-GET /account  
-POST /transfer
-GET /transfer
-GET /transfer/:id
+GET /banking/account  
+POST /banking/transfer
+GET /banking/transfer ## Fetch all the transfer
+GET /banking/transfer?amount=4000 ## Fetch the transfer that the amount is 4000
+GET /banking/transfer?amount[gte]=4000 ## Fetch the transfer that the amount is 4000 or greater than 4000
+GET /banking/transfer?amount[lte]=4000 ## Fetch the transfer that the amount is 4000 or less than 4000
+GET /banking/transfer?amount[lt]=4000  ## Fetch the transfer that the amount is less than 4000
+GET /banking/transfer?amount[gt]=4000  ## Fetch the transfer that the amount is greater than 4000
+GET /banking/transfer/:id ## Get a single transfer by id
 
 
 
@@ -97,7 +112,7 @@ POST /banking/login
 
 ### Response
 {
-  "success": true 
+  "success": true,
   "message": "Login successful",
   "data": access_token
 }
@@ -112,14 +127,14 @@ POST /banking/register
 
 ```json
 {
-  "name": "test"
+  "name": "test",
   "email": "test@test.com",
   "password": "password123"
 }
 
 ### Response
 {
-  "success": true 
+  "success": true,
   "message": "Registration successful, email verification ahs been sant to you email",
   "data": user_data
 }
