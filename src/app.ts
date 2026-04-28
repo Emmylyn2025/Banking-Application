@@ -3,14 +3,20 @@ import { globalError, appError } from "./utils/error";
 import cookieParser from "cookie-parser";
 import router from "./routes/router";
 import limiter from "./rateLimit/limiter";
+import helmet from "helmet";
+import cors from "cors";
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.set('query parser', 'extended');
-
+app.use(helmet());
 app.use(limiter);
-app.use('/banking', router);
+app.use(cors({
+  origin: process.env.fronend_url,
+  credentials: true
+}));
+app.use('/banking', router);``
 
 //Not found error handler
 app.use((req, res, next) => {
