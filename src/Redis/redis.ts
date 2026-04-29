@@ -1,10 +1,7 @@
 import { Redis } from "ioredis";
+import dotenv from "dotenv";
 
-const redis = new Redis({
-  host: "localhost",
-  port: 6379,
-  maxRetriesPerRequest: 3
-});
+const redis = new Redis(process.env.REDIS_URL!);
 
 redis.on("connect", () => {
   console.log("Connected to redis");
