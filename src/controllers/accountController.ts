@@ -110,7 +110,7 @@ export const transfer = asyncHandler(async (req: Request<{}, {}, userTranferType
 
   const updateReciverAcct = recieverAcct?.Balance + amount
 
-  const transferAcct = await prisma.$transaction(async (tx) => {
+  const transferAcct = await prisma.$transaction(async (tx: any) => {
     //Update sender account
     await tx.account.update({
       where: {

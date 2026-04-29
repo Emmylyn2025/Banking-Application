@@ -30,7 +30,7 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
   const hashedPassword = await hashPassword(password)
 
   //Create user and create user account with transactions
-  const result = await prisma.$transaction(async (tx) => {
+  const result = await prisma.$transaction(async (tx: any) => {
     //Create a new user
     const newUser = await tx.user.create({
       data: {
