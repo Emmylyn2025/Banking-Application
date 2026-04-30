@@ -37,7 +37,7 @@ function saveRefreshCookie(res: Response, token: string) {
     httpOnly: true,
     sameSite: "none",
     maxAge: 10 * 24 * 60 * 60 * 1000,
-    secure: false
+    secure: true
   });
 }
 
@@ -47,7 +47,7 @@ function saveAccessCookie(res: Response, token: string) {
     httpOnly: true,
     sameSite: "none",
     maxAge:  7 * 60 * 1000,
-    secure: false
+    secure: true
   });
 }
 
@@ -56,7 +56,7 @@ function clearAccess(res: Response) {
     httpOnly: true,
     sameSite: "none",
     maxAge:  7 * 60 * 1000,
-    secure: false
+    secure: true
   })
 }
 
@@ -65,7 +65,7 @@ function clearRefresh(res: Response) {
     httpOnly: true,
     sameSite: "none",
     maxAge:  10 * 24 * 60 * 60 * 1000,
-    secure: false
+    secure: true
   })
 }
 
