@@ -242,8 +242,8 @@ export const myAccount = asyncHandler(async (req: Request, res: Response, next: 
     return res.status(404).json(response);
   }
 
-  //set account data in redis cache with expiration time of 30minutes
-  await saveInRedis(`myaccount:${userId}`, user, 1800);
+  //set account data in redis cache with expiration time of 3minutes
+  await saveInRedis(`myaccount:${userId}`, user, 180);
 
   const response = respond(true, "Account details retrieved", user);
   res.status(200).json(response);
