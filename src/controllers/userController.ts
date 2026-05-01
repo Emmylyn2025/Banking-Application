@@ -113,10 +113,18 @@ export const loginUser = asyncHandler(async (req: Request<{}, {}, loginBody>, re
 
   const user = await getUserByEmail(email);
 
-  if (!user) return next(new appError("User not registered", 401));
+  //if (!user) return next(new appError("User not registered", 401));
+  if (!user) {
+    const response = respond(false, "User not registered", null);
+    return res.status(401).json(response);
+  }
 
   //Check if the user has verified their email
-  if(user.emailVerified === false) return next(new appError("Please verify your email to login", 401));
+  //if (user.emailVerified === false) return next(new appError("Please verify your email to login", 401));
+  if (user.emailVerified === false) {
+    const response = respond(false, "Please verify your email to login", null);
+    return res.status(401).json(response);
+  }
 
   //Compare password
   const pass = await comparePassword(password, user.password);
