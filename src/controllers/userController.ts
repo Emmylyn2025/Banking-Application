@@ -14,6 +14,7 @@ import { generatePasswordResetToken } from "../token/token";
 import { sendEmailForPasswordReset, sendEmailForVerification } from "../emails/sendEmail";
 import { getUserByEmail, getUserById } from "../services/user.service";
 import validateId from "../utils/validateId";
+import redis from "../Redis/redis";
 
 export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -182,7 +183,8 @@ export const logout = asyncHandler(async (req: Request, res: Response, next: Nex
     clearRefresh(res);
 
     //Delete tokens from redis
-    await saveInRedis(`refresh(banking)${user.id}`, "", 0);
+    //await saveInRedis(`refresh(banking)${user.id}`, "", 0);
+    await redis.del(`refresh(banking)${user.id}`);
 
     //Response 
     const response = respond(true, "Logout Successful", null);
