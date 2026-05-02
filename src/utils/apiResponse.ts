@@ -1,8 +1,8 @@
 
 import { apiResponse } from "../types/types";
 
-function respond(success: boolean, message: string, data: any) {
-  const response: apiResponse<typeof data> = {
+function respond<responseData>(success: boolean, message: string, data: responseData) {
+  const response: apiResponse<responseData> = {
     success,
     message,
     data
