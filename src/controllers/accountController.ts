@@ -28,7 +28,7 @@ export const getAccount = asyncHandler(async (req: Request, res: Response, next:
     where: {
       userId
     },
-    include: {
+    select: {
       user: {
         select: {
           id: true,
