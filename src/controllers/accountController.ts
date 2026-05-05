@@ -48,7 +48,8 @@ export const getAccount = asyncHandler(async (req: Request, res: Response, next:
               },
               AcctNum: true
             }
-          }
+          },
+          amount: true,
         }
       },
       creditHistory: {
@@ -63,7 +64,8 @@ export const getAccount = asyncHandler(async (req: Request, res: Response, next:
               },
               AcctNum: true
             }
-          }
+          },
+          amount: true,
         }
       }
     }
