@@ -182,6 +182,9 @@ export const transfer = asyncHandler(async (req: Request<{}, {}, userTranferType
   await redis.del(`myaccount:${userId}`);
   await redis.del(`account:${userId}`);
 
+  await redis.del(`myaccount:${recieverAcct.userId}`);
+  await redis.del(`account:${recieverAcct.userId}`);
+
   //After transaction is successful
   const data = transferAcct.transaction;
   const response = respond(true, "Money Transfer Successful", data);
