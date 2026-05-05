@@ -66,7 +66,7 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
   await saveInRedis(`verifyEmail:${verifyEmailToken}`, result.newUser.id, 60 * 60 * 24);
 
   //Send email to user with the token and the url to verify email
-  const verifyEmailUrl = `${process.env.base_url}/banking/verify-email/${verifyEmailToken}`; 
+  const verifyEmailUrl = `${process.env.frontend_url}/verify-email?token=${verifyEmailToken}`;
 
   //Send the link to the user email for email verification
   await sendEmailForVerification(result.newUser.email, verifyEmailUrl);
@@ -265,7 +265,7 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: 
   await saveInRedis(`resetToken:${resetToken}`, user.id, 600);
 
   //Add the hashed reset token to the reset url
-  const resetUrl = `${process.env.base_url}/banking/reset-password/${resetToken}`;
+  const resetUrl = `${process.env.frontend_url}/reset-password?token=${resetToken}`;
   //console.log(resetUrl);
 
   //Send the link to the user email for password reset
@@ -277,7 +277,7 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: 
   res.status(200).json(response);
 });
 
-export const resetPassword = asyncHandler(async (req: Request<{ token: string }, {}, { password: string }>, res: Response, next: NextFunction) => { 
+export const resetPassword = asyncHandler(async (req: Request<{ token: string }, {}, { password: string }>, res: Response, next: NextFunction) => {
   const { token } = req.params;
   const { password } = req.body;
 
@@ -287,6 +287,14 @@ export const resetPassword = asyncHandler(async (req: Request<{ token: string },
   //If the token is invalid or expired
   if (!savedHasedToken) {
     const response = respond(false, "Invalid or expired token", null);
+    return res.status(400).json(response);
+  }
+
+  //Check if new password is the same as the old password
+  const user = await getUserById(savedHasedToken);
+
+  if (await comparePassword(password, user?.password as string)) {
+    const response = respond(false, "New password cannot be the same as the old password", null);
     return res.status(400).json(response);
   }
 
@@ -312,7 +320,7 @@ export const resetPassword = asyncHandler(async (req: Request<{ token: string },
     const response = respond(false, message, null);
     res.status(status).json(response);
   }
-})
+});
 
 export const allUsers = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
