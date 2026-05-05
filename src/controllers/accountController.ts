@@ -180,6 +180,7 @@ export const transfer = asyncHandler(async (req: Request<{}, {}, userTranferType
 
   //clear account data in redis cache
   await redis.del(`myaccount:${userId}`);
+  await redis.del(`account:${userId}`);
 
   //After transaction is successful
   const data = transferAcct.transaction;
