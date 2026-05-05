@@ -36,8 +36,36 @@ export const getAccount = asyncHandler(async (req: Request, res: Response, next:
           email: true
         }
       },
-      debitHistory: true,
-      creditHistory: true
+      debitHistory: {
+        select: {
+          toAccId: true,
+          receiverAcct: {
+            select: {
+              user: {
+                select: {
+                  name: true
+                }
+              },
+              AcctNum: true
+            }
+          }
+        }
+      },
+      creditHistory: {
+        select: {
+          fromAccId: true,
+          senderAcct: {
+            select: {
+              user: {
+                select: {
+                  name: true
+                }
+              },
+              AcctNum: true
+            }
+          }
+        }
+      }
     }
   });
 
