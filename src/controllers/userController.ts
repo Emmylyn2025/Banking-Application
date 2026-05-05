@@ -15,6 +15,7 @@ import { sendEmailForPasswordReset, sendEmailForVerification } from "../emails/s
 import { getUserByEmail, getUserById } from "../services/user.service";
 import validateId from "../utils/validateId";
 import redis from "../Redis/redis";
+import { Prisma } from "@prisma/client";
 
 export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -324,7 +325,7 @@ export const allUsers = asyncHandler(async (req: Request, res: Response, next: N
     return res.status(200).json(response);
   }
 
-  const builder = new QueryBuilder(req.query)
+  const builder = new QueryBuilder<Prisma.UserFindManyArgs>(req.query)
     .filter(allowedFields)
     .limitFields(allowedFields)
     .sort(allowedFields)

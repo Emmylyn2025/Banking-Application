@@ -7,6 +7,8 @@ import { comparePassword } from "../utils/password";
 import QueryBuilder from "../utils/queryBuilder";
 import { saveInRedis, getFromRedis } from "../Redis/utilityRedis";
 import validateId from "../utils/validateId";
+import { Prisma } from "@prisma/client";
+import redis from "../Redis/redis";
 
 
 export const getAccount = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
@@ -144,6 +146,9 @@ export const transfer = asyncHandler(async (req: Request<{}, {}, userTranferType
     return { transaction };
   })
 
+  //clear account data in redis cache
+  await redis.del(`myaccount:${userId}`);
+
   //After transaction is successful
   const data = transferAcct.transaction;
   const response = respond(true, "Money Transfer Successful", data);
@@ -164,7 +169,7 @@ export const allTransactions = asyncHandler(async (req: Request, res: Response, 
 
   const allowedFields = ["id", "fromAccId", "toAccId", "userId", "amount", "createdAt", "receiverAcct"];
 
-  const builder = new QueryBuilder(req.query)
+  const builder = new QueryBuilder<Prisma.TransacTionsFindManyArgs>(req.query)
     .filter(allowedFields)
     .limitFields(allowedFields)
     .sort(allowedFields)
