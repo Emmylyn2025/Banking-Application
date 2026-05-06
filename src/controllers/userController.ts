@@ -66,7 +66,7 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
   await saveInRedis(`verifyEmail:${verifyEmailToken}`, result.newUser.id, 60 * 60 * 24);
 
   //Send email to user with the token and the url to verify email
-  const verifyEmailUrl = `${process.env.frontend_url}/verify-email?token=${verifyEmailToken}`;
+  const verifyEmailUrl = `${process.env.fronend_url!}/verify-email?token=${verifyEmailToken}`;
 
   //Send the link to the user email for email verification
   await sendEmailForVerification(result.newUser.email, verifyEmailUrl);
