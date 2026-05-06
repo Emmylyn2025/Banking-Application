@@ -265,7 +265,7 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: 
   await saveInRedis(`resetToken:${resetToken}`, user.id, 600);
 
   //Add the hashed reset token to the reset url
-  const resetUrl = `${process.env.frontend_url}/reset-password?token=${resetToken}`;
+  const resetUrl = `${process.env.fronend_url}/reset-password?token=${resetToken}`;
   //console.log(resetUrl);
 
   //Send the link to the user email for password reset
