@@ -103,7 +103,7 @@ export const verifyEmail = asyncHandler(async (req: Request<{ token: string }, {
   });
 
   //Delete the token from redis
-  await saveInRedis(`verifyEmail:${token}`, "", 0);
+  await redis.del(`verifyEmail:${token}`);
 
   const response = respond(true, "Email verified successfully", null);
   res.status(200).json(response);
