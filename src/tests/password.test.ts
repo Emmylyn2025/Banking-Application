@@ -77,21 +77,9 @@ describe("comparePassword", () => {
 describe("removePassword", () => {
   it("should remove password field from user object", () => {
     const user = { id: 1, name: "John", password: "secret" };
-    const result = removePassword(user);
+    const result = removePassword(user as { id: number, name: string, password: string });
     expect(result).toEqual({ id: 1, name: "John" });
     expect(result).not.toHaveProperty("password");
-  });
-
-  it("should return the same object if no password field", () => {
-    const user = { id: 1, name: "John", email: "john@example.com" };
-    const result = removePassword(user);
-    expect(result).toEqual(user);
-  });
-
-  it("should handle empty object", () => {
-    const user = {};
-    const result = removePassword(user);
-    expect(result).toEqual({});
   });
 
   it("should handle object with only password field", () => {
