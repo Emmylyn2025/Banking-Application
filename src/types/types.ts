@@ -9,6 +9,12 @@ export interface loginBody {
   password: string
 }
 
+export type userResultPasswordRemoval = Omit<userRemoval, "createdAt" | "id" | "role">;
+
+export type emailVerificationQueueData = Pick<loginBody, "email"> & { url: string };
+
+export type passwordResetQueueData = Pick<loginBody, "email"> & { url: string, ip: string, userAgent: string };
+
 export interface userBody extends loginBody {
   name: string
 }

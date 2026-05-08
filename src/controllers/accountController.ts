@@ -135,6 +135,12 @@ export const transfer = asyncHandler(async (req: Request<{}, {}, userTranferType
     }
   });
 
+  //Check if the user is trying to transfer to his own account
+  if (recieverAcct?.userId === userId) {
+    const response = respond(false, "You cannot transfer money to your own account", null);
+    return res.status(400).json(response);
+  }
+
   if (!recieverAcct) {
     const response = respond(false, "The account is not found", null);
     return res.status(404).json(response);

@@ -8,7 +8,7 @@ async function comparePassword(inputPassword: string, savedPassword: string) : P
   return await bcrypt.compare(inputPassword, savedPassword);
 }
 
-function removePassword(user: any) {
+function removePassword<T extends { password: string }>(user: T) {
   const { password, ...rest } = user;
   return rest
 }

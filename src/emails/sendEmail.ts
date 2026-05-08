@@ -7,10 +7,10 @@ const resend = new Resend(process.env.resend_api_key!);
 
 //console.log(process.env.resend_from!);
 
-async function sendEmailForVerification(to: string, verificationToken: string) {
+async function sendEmailForVerification(to: string, verificationUrl: string) {
 
   const html = fs.readFileSync("src/emails/verifyEmail.html", "utf-8");
-  const customizedHtml = html.replace(/{{verification_link}}/g, verificationToken);
+  const customizedHtml = html.replace(/{{verification_link}}/g, verificationUrl);
 
   try {
 
@@ -33,9 +33,9 @@ async function sendEmailForVerification(to: string, verificationToken: string) {
   }
 }
 
-async function sendEmailForPasswordReset(to: string, resetToken: string, ip: string, userAgent: string) {
+async function sendEmailForPasswordReset(to: string, resetUrl: string, ip: string, userAgent: string) {
   const html = fs.readFileSync("src/emails/forgotPasswordEmail.html", "utf-8");
-  const customizedHtml = html.replace(/{{reset_link}}/g, resetToken);
+  const customizedHtml = html.replace(/{{reset_link}}/g, resetUrl);
   const customizedHtmlWithDetails = customizedHtml.replace(/{{ip_address}}/g, ip).replace(/{{user_agent}}/g, userAgent);
 
   try {

@@ -16,6 +16,10 @@ import { getUserByEmail, getUserById } from "../services/user.service";
 import validateId from "../utils/validateId";
 import redis from "../Redis/redis";
 import { Prisma } from "@prisma/client";
+import emailQueue from "../Queues/emailQueue";
+import { emailVerificationQueueData, passwordResetQueueData } from "../types/types";
+import { addEmailToQueue } from "../utils/addingToQueue";
+import { userResultPasswordRemoval } from "../types/types";
 
 export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, res: Response, next: NextFunction) => {
   const { name, email, password } = req.body;
@@ -56,7 +60,7 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
   });
 
   //Remove user password from result
-  const final = removePassword(result.newUser);
+  const final = removePassword<userResultPasswordRemoval>(result.newUser);
   const userAccount = result.acct;
   const together = { ...final, ...userAccount };
 
@@ -69,7 +73,17 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
   const verifyEmailUrl = `${process.env.fronend_url!}/verify-email?token=${verifyEmailToken}`;
 
   //Send the link to the user email for email verification
-  await sendEmailForVerification(result.newUser.email, verifyEmailUrl);
+  //await sendEmailForVerification(result.newUser.email, verifyEmailUrl);
+  //Put the email sending task in the email queue
+  // await emailQueue.add("sendVerificationEmail", { email: result.newUser.email, url: verifyEmailUrl }, {
+  //   attempts: 3,
+  //   backoff: {
+  //     type: "exponential",
+  //     delay: 1000
+  //   }
+  // })
+
+  await addEmailToQueue<emailVerificationQueueData>("sendVerificationEmail", { email: result.newUser.email, url: verifyEmailUrl });
 
   const response = respond(true, "User created Successfully, Make sure to verify your email, to make your account active and secure", together);
 
@@ -271,7 +285,8 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: 
   //Send the link to the user email for password reset
   const ip = req.ip!;
   const userAgent = req.headers["user-agent"] || "unknown";
-  await sendEmailForPasswordReset(user.email, resetUrl, ip, userAgent)
+  //await sendEmailForPasswordReset(user.email, resetUrl, ip, userAgent)
+  await addEmailToQueue<passwordResetQueueData>("sendPasswordResetEmail", { email: user.email, url: resetUrl, ip, userAgent });
 
   const response = respond(true, "Reset url has been sent to your email", null);
   res.status(200).json(response);
@@ -313,7 +328,7 @@ export const resetPassword = asyncHandler(async (req: Request<{ token: string },
     res.status(200).json(response);
 
     //Delete the token from redis
-    await saveInRedis(`resetToken:${token}`, "", 0);
+    await redis.del(`resetToken:${token}`);
     
   } catch (error: any) {
     const { status, message } = handlePrismaError(res, error);
