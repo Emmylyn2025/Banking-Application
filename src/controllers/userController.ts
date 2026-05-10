@@ -72,17 +72,7 @@ export const registerUser = asyncHandler(async (req: Request<{}, {}, userBody>, 
   //Send email to user with the token and the url to verify email
   const verifyEmailUrl = `${process.env.fronend_url!}/verify-email?token=${verifyEmailToken}`;
 
-  //Send the link to the user email for email verification
-  //await sendEmailForVerification(result.newUser.email, verifyEmailUrl);
-  //Put the email sending task in the email queue
-  // await emailQueue.add("sendVerificationEmail", { email: result.newUser.email, url: verifyEmailUrl }, {
-  //   attempts: 3,
-  //   backoff: {
-  //     type: "exponential",
-  //     delay: 1000
-  //   }
-  // })
-
+  //Add the email sending task to the queue
   await addEmailToQueue<emailVerificationQueueData>("sendVerificationEmail", { email: result.newUser.email, url: verifyEmailUrl });
 
   const response = respond(true, "User created Successfully, Make sure to verify your email, to make your account active and secure", together);
@@ -285,7 +275,8 @@ export const forgotPassword = asyncHandler(async (req: Request<{}, {}, { email: 
   //Send the link to the user email for password reset
   const ip = req.ip!;
   const userAgent = req.headers["user-agent"] || "unknown";
-  //await sendEmailForPasswordReset(user.email, resetUrl, ip, userAgent)
+  
+  //Add the email sending task to the queue
   await addEmailToQueue<passwordResetQueueData>("sendPasswordResetEmail", { email: user.email, url: resetUrl, ip, userAgent });
 
   const response = respond(true, "Reset url has been sent to your email", null);
