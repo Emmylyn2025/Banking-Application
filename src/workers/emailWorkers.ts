@@ -1,4 +1,4 @@
-import redis from "../Redis/redis";
+import { bullMQConnection } from "../Redis/redis";
 import { Worker } from "bullmq";
 import { sendEmailForVerification, sendEmailForPasswordReset } from "../emails/sendEmail";
 
@@ -27,7 +27,7 @@ const emailWorker = new Worker("email", async (job) => {
   }
 
 }, {
-  connection: redis,
+  connection: bullMQConnection,
   concurrency: 5
 });
 

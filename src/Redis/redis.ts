@@ -16,4 +16,11 @@ redis.on("reconnecting", (time: number) => {
   console.warn(`Redis: Reconnecting in ${time}ms...`);
 });
 
+//Seperate connection for BullMq
+export const bullMQConnection = {
+  host: new URL(process.env.REDIS_URL!).hostname,
+  port: Number(new URL(process.env.REDIS_URL!).port),
+  password: new URL(process.env.REDIS_URL!).password || undefined,
+};
+
 export default redis;
