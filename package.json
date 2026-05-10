@@ -7,7 +7,7 @@
     "dev": "npx ts-node src/server.ts",
     "build": "prisma generate && tsc",
     "start": "node dist/server.js",
-    "start:worker": "node dist/workers/emailWorker.js",
+    "start:worker": "node dist/workers/emailWorkers.js",
     "test": "jest"
   },
   "keywords": [],
